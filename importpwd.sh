@@ -14,19 +14,25 @@
 # invoke with
 # cat password-export | fgrep '<entry host="' | importpwd.sh <keyid> | tee ~/.pwd/import.log
 
-keyid=${1:-0xDEADBEEF} # this is you keyid for your "database" encryption key
-salt="anti-rainbow-technology" # this should be some random string
-data=${2:-$HOME/.pwd/}
+# put into ~/.pwd/.cfg
+# keyid=0xDEADBEEF # this is you keyid for your "database" encryption key
+# salt="anti-rainbow-technology" # this should be some random string
+
+data=${1:-$HOME/.pwd/}
+source $data/.cfg
+
+[[ -z "$keyid" ]] && exit 1
+salt=${salt:-anti-rainbow-garbage} # this should be some random string
 
 while read line; do
-    host=$(echo $line | sed 's/.* host="\(.*\)" user=".*/\1/')
-    user=$(echo $line | sed 's/.* user="\(.*\)" password=".*/\1/')
-    pass=$(echo $line | sed 's/.* password="\(.*\)" formSubmitURL=".*/\1/')
+    host=$(echo "$line" | sed 's/.* host="\(.*\)" user=".*/\1/')
+    user=$(echo "$line" | sed 's/.* user="\(.*\)" password=".*/\1/')
+    pass=$(echo "$line" | sed 's/.* password="\(.*\)" formSubmitURL=".*/\1/')
     # get hash of title/url
-    { printf "$salt"; echo "$host"; } | md5sum | cut -d' ' -f1 | read hosthash
-    { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
+    { echo -n "$salt"; echo "$host"; } | md5sum | cut -d' ' -f1 | read hosthash
+    { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     mkdir -p $data/$hosthash
     [[ -f $data/$hash/$userhash ]] && mv $data/$hash/$userhash $data/$hash/$userhash.$(date +%s)
     echo "importing $user for $host to $data/$hosthash/$userhash"
-    printf "$user\t$pass" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt -r $keyid >$data/$hosthash/$userhash
+    echo -n "$user	$pass" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt -r $keyid >$data/$hosthash/$userhash
 done

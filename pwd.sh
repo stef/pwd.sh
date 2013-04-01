@@ -6,6 +6,11 @@
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
 #
+# put into ~/.pwd/.cfg
+# keyid=<yourkeyid>
+# salt="anti-rainbow-garbage" # this should be some random string
+#
+#
 # bind to some window manager keys
 # pwd.sh      # for getting a password
 # pwd.sh a    # creating a new random password
@@ -31,12 +36,13 @@
 # how you like your passwords?
 alias apg=apg -q -a1 -n 1 -m 14 -M NCL
 
-# this is you keyid for your "database" encryption key
-keyid=0xDEADBEEF
-
-salt="anti-rainbow-technology" # this should be some random string
-
 # end of config
+
+# load keyid & salt
+data=${1:-$HOME/.pwd/}
+source $data/.cfg
+[[ -z "$keyid" ]] && exit 1
+salt=${salt:-anti-rainbow-garbage} # this should be some random string
 
 function xdoget {
     title="$1"
@@ -61,7 +67,7 @@ function xdoget {
     { printf "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { printf "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
     line=$(kdialog --password "unlock pwd" | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
-    printf "${line}" | cut -d"	" -f2 | xclip -i
+    echo -n "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
 
@@ -83,20 +89,20 @@ esac
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     mkdir -p ~/.pwd/$hash
     [[ -f ~/.pwd/$hash/$userhash ]] && mv ~/.pwd/$hash/$userhash ~/.pwd/$hash/$userhash.$(date +%s)
-    printf "$user\t$pwd" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
-    printf "$pass" | xclip -i
+    echo -n "$user	$pwd" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
+    echo -n "$pass" | xclip -i
     exit 0
 }
 
 # query all stored passwords for the current active window
-#echo "key=$title" >~/.pwd/log
+#echo "key=$title" >>~/.pwd/log
 [[ -d ~/.pwd/$hash ]] || exit 1 # no such host/label available
 
 pass="$(kdialog --password 'unlock pwd')"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
-    user="$( echo "${line}" | cut -d"	" -f1 )"
+    user="$(echo "${line}" | cut -d"	" -f1)"
     echo "$user"
     sleep 0.2
 done | dmenu | read user
@@ -105,7 +111,7 @@ done | dmenu | read user
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     echo "pass=$pass"
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
-    printf "${line}" | cut -d"	" -f2 | xclip -i
+    echo -n "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
         xdotool getactivewindow key g i ctrl+u
         xdotool getactivewindow type "$user"
