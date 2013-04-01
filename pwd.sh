@@ -20,19 +20,13 @@
 # check out ~/.pwd after issuing a few "pwd.sh a" invocations.
 #
 # depends:
-# apt-get install gnupg xdotool xclip gpg-agent suckless-tools kdialog pinentry-gtk-2 apg
+# apt-get install gnupg xdotool xclip suckless-tools kdialog
 # (suckless-tools provides dmenu)
 #
 # you need to config gpg a bit:
 #     personal-digest-preferences SHA512
 #     cert-digest-algo SHA512
 #     require-secmem
-#     use-agent
-#
-#and also ~/pwd/gnupg/gpg-agent.conf needs some contents:
-#     enable-ssh-support
-#     pinentry-program /usr/bin/pinentry-gtk-2
-#     no-grab
 
 # if you want a private gnupg setup for pwd.sh enable this
 #gpghome="--homedir ~/.pwd/gnupg"
@@ -72,16 +66,6 @@ function xdoget {
     done
     [[ $retries -ge 3 ]] && echo "$title"
 }
-
-# init gpg-agent
-[[ -f "${HOME}/.gpg-agent-info" ]] && {
-    . "${HOME}/.gpg-agent-info"
-    export GPG_AGENT_INFO
-    export SSH_AUTH_SOCK
-}
-
-[[ -z "$GPG_AGENT_INFO" || ! -r ${GPG_AGENT_INFO%%:*} ]] &&
-    eval $(gpg-agent --daemon --write-env-file "${HOME}/.gpg-agent-info")
 
 [[ "$#" -eq 2 ]] && {
     { printf "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
