@@ -7,9 +7,10 @@
 #  (at your option) any later version.
 
 # warning! i accidentally clobbered the original version of this. this
-# is mostly a quick rewrite from memory invoke. please test this
-# before using it live.
+# is mostly a quick rewrite from memory. please test this before using
+# it live.
 
+# invoke with
 # cat password-export | fgrep '<entry host="' | importpwd.sh <keyid> | tee ~/.pwd/import.log
 
 keyid=${1:-0xDEADBEEF} # this is you keyid for your "database" encryption key
