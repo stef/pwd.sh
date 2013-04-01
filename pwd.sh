@@ -115,7 +115,7 @@ esac
 }
 
 # query all stored passwords for the current active window
-echo "key=$title" >~/.pwd/log
+#echo "key=$title" >~/.pwd/log
 [[ -d ~/.pwd/$hash ]] || exit 1 # no such host/label available
 
 pass="$(kdialog --password 'unlock pwd')"
@@ -131,7 +131,7 @@ done | dmenu | read user
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     echo "pass=$pass"
     line=$(echo "$pass" | gpg --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
-    echo "${line}" | cut -d"	" -f2 | xclip -i
+    printf "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
         xdotool getactivewindow key g i ctrl+u
         xdotool getactivewindow type "$user"
