@@ -22,31 +22,21 @@
 # depends:
 # apt-get install gnupg xdotool xclip suckless-tools kdialog
 # (suckless-tools provides dmenu)
-#
-# you need to config gpg a bit:
-#     personal-digest-preferences SHA512
-#     cert-digest-algo SHA512
-#     require-secmem
 
 # if you want a private gnupg setup for pwd.sh enable this
-#gpghome="--homedir ~/.pwd/gnupg"
+# gpghome="--homedir ~/.pwd/gnupg"
+# and generate a new storage key with (homedir should exist)
+# gpg --gen-key --homedir ~/.pwd/gnupg
 
 # how you like your passwords?
 alias apg=apg -q -a1 -n 1 -m 14 -M NCL
 
-# generate a new storage key with (homedir should exist)
-# new database gpg --gen-key --homedir ~/.pwd/gnupg
-keyid=0xDEADBEEF # this is you keyid for your "database" encryption key
+# this is you keyid for your "database" encryption key
+keyid=0xDEADBEEF
 
 salt="anti-rainbow-technology" # this should be some random string
 
 # end of config
-
-# gpg-agent is buggy with 4K keys on cryptosticks, so we disable it:
-[[ -n "$GPG_AGENT_INFO" ]] && {
-    export OLD_GPGAGENT="$GPG_AGENT_INFO"
-    unset GPG_AGENT_INFO
-}
 
 function xdoget {
     title="$1"
@@ -70,13 +60,13 @@ function xdoget {
 [[ "$#" -eq 2 ]] && {
     { printf "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { printf "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(kdialog --password "unlock pwd" | gpg --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    line=$(kdialog --password "unlock pwd" | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
     printf "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
 
 # find out title/url
-# TODO maybe also detect chromium, etc?
+# TODO maybe also detect chromium, uzbl, luakit, etc?
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
     *Pentadactyl) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
@@ -93,7 +83,7 @@ esac
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     mkdir -p ~/.pwd/$hash
     [[ -f ~/.pwd/$hash/$userhash ]] && mv ~/.pwd/$hash/$userhash ~/.pwd/$hash/$userhash.$(date +%s)
-    printf "$user\t$pwd" | gpg --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
+    printf "$user\t$pwd" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
     printf "$pass" | xclip -i
     exit 0
 }
@@ -105,7 +95,7 @@ esac
 pass="$(kdialog --password 'unlock pwd')"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
-    line=$(echo "$pass" | gpg --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
+    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
     user="$( echo "${line}" | cut -d"	" -f1 )"
     echo "$user"
     sleep 0.2
@@ -114,17 +104,11 @@ done | dmenu | read user
 [[ -n "$user" ]] && {
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     echo "pass=$pass"
-    line=$(echo "$pass" | gpg --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
+    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     printf "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
         xdotool getactivewindow key g i ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
     }
-}
-
-# restore gpg-agent if it was running
-[[ -n "$OLD_GPGAGENT" ]] && {
-    export GPG_AGENT_INFO="$OLD_GPGAGENT"
-    unset OLD_GPGAGENT
 }
