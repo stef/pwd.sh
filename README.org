@@ -1,0 +1,26 @@
+* pwd.sh
+a simple password manager.
+
+passwords are stored in hashed filenamed files, encrypted using a
+gpg public key
+
+pwd uses window titles or in case of firefox the current page url
+for indexing keys, these are hashed with a salt for their final
+directory name. Users are stored in separate files, similarily named
+using hashed names underneath their respective "site" directory.
+check out ~/.pwd after issuing a few "pwd.sh a" invocations.
+
+for configuration check out the beginning of pwd.sh
+
+importpwd imports passwords from the firefox password exporter addon.
+all files are stored under ~/.pwd
+
+bind to some window manager keys
+pwd.sh      # for getting a password
+pwd.sh a    # creating a new random password
+
+if gpg fails on you, you should disable the gpg-agent for pwd.sh.
+
+depends:
+apt-get install gnupg xdotool xclip suckless-tools kdialog apg
+(suckless-tools provides dmenu)
