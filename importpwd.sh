@@ -10,6 +10,7 @@
 # is mostly a quick rewrite from memory. please test this before using
 # it live.
 
+# use the firefox password-export addon to feed this script.
 # invoke with
 # cat password-export | fgrep '<entry host="' | importpwd.sh <keyid> | tee ~/.pwd/import.log
 
