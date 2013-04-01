@@ -15,6 +15,7 @@
 
 keyid=${1:-0xDEADBEEF} # this is you keyid for your "database" encryption key
 salt="anti-rainbow-technology" # this should be some random string
+data=${2:-$HOME/.pwd/}
 
 while read line; do
     host=$(echo $line | sed 's/.* host="\(.*\)" user=".*/\1/')
@@ -23,7 +24,8 @@ while read line; do
     # get hash of title/url
     { printf "$salt"; echo "$host"; } | md5sum | cut -d' ' -f1 | read hosthash
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
-    [[ -d ~/.pwd/$hosthash ]] || mkdir -p ~/.pwd/$hosthash
-    [[ -f ~/.pwd/$hash/$userhash ]] && mv ~/.pwd/$hash/$userhash ~/.pwd/$hash/$userhash.$(date +%s)
-    printf "$user\t$pass" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hosthash/$userhash
+    mkdir -p $data/$hosthash
+    [[ -f $data/$hash/$userhash ]] && mv $data/$hash/$userhash $data/$hash/$userhash.$(date +%s)
+    echo "importing $user for $host to $data/$hosthash/$userhash"
+    printf "$user\t$pass" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt -r $keyid >$data/$hosthash/$userhash
 done
