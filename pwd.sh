@@ -1,5 +1,5 @@
 #!/usr/bin/ksh
-# (c) 2013 s@ctrlc.hu, asciimoo@faszkorbacs.hu
+# (c) 2013 s@ctrlc.hu, asciimoo@faszkorbacs.hu, mail@crazypotato.tk
 #
 #  This is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 # how you like your passwords?
 alias pwgen="apg -q -a1 -n 1 -m 14 -M NCL"
 
+# ssh-askpass path fix for ARCH linux
 if [[ -x "/usr/lib/ssh/ssh-askpass" ]]; then
     alias pwprompt=/usr/lib/ssh/ssh-askpass
 else
@@ -84,7 +85,7 @@ function xdoget {
 [[ "$#" -eq 2 ]] && {
     { echo -n "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { echo -n "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(pwprompt | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    line=$(pwprompt | gpg --batch --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
@@ -94,9 +95,10 @@ function xdoget {
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
     *Pentadactyl|*Vimperator) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
-    *Iceweasel|*Firefox|*Chromium) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
-    *Uzbl) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
-    *luakit) title="$(xdoget "title" shift+o ctrl+shift+Left ctrl+c)"; wintype=luakit; break;;
+    *Iceweasel|*Firefox) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
+    *Chromium) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=chromium; break;;
+    *Uzbl\ browser*) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
+    luakit*) title="$(xdoget "title" shift+o Home ctrl+Right Right ctrl+shift+End ctrl+c Escape)"; wintype=luakit; break;;
 esac
 
 # get hash of title/url
@@ -121,7 +123,7 @@ esac
 pass="$(pwprompt)"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
-    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
+    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
     user="$(echo "${line}" | cut -d"	" -f1)"
     echo "$user"
     sleep 0.2
@@ -129,11 +131,23 @@ done | dmenu | read user
 
 [[ -n "$user" ]] && {
     { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
+    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
-    [[ "$wintype" == "dactyl" ]] && {
-        xdotool getactivewindow key Esc g i ctrl+u
+    if [[ "$wintype" == "dactyl" ]]; then
+        xdotool getactivewindow key Escape g i ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
-    }
+    elif [[ "$wintype" == "luakit" ]]; then
+        xdotool getactivewindow key Escape g i Tab ctrl+u
+        xdotool getactivewindow type "$user"
+        xdotool getactivewindow key Tab
+    elif [[ "$wintype" == "firefox" ]]; then
+        xdotool getactivewindow key Tab Tab Tab
+        xdotool getactivewindow type "$user"
+        xdotool getactiveWindow key Tab
+    elif [[ "$wintype" == "chromium" ]]; then
+        xdotool getactivewindow key Tab
+        xdotool getactivewindow type "$user"
+        xdotool getactivewindow key Tab
+    fi
 }
