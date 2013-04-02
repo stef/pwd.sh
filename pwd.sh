@@ -1,5 +1,5 @@
 #!/usr/bin/ksh
-# (c) 2013 s@ctrlc.hu
+# (c) 2013 s@ctrlc.hu, asciimoo@faszkorbacs.hu
 #
 #  This is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,13 @@
 # gpg --gen-key --homedir ~/.pwd/gnupg
 
 # how you like your passwords?
-alias apg=apg -q -a1 -n 1 -m 14 -M NCL
+alias pwgen="apg -q -a1 -n 1 -m 14 -M NCL"
+
+alias pwprompt=ssh-askpass
+
+function userprompt {
+    echo -n "$USERNAME" | dmenu -p 'user>'
+}
 
 # end of config
 
@@ -54,7 +60,7 @@ salt=${salt:-anti-rainbow-garbage} # this should be some random string
 function xdoget {
     title="$1"
     shift 1
-    printf '' | xclip -i
+    echo -n '' | xclip -i
     sleep 0.2
     xdotool getactivewindow key $*
     retries=0
@@ -72,9 +78,9 @@ function xdoget {
 
 # get host/user passwords
 [[ "$#" -eq 2 ]] && {
-    { printf "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
-    { printf "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(kdialog --password "unlock pwd" | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    { echo -n "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
+    { echo -n "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
+    line=$(pwprompt | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
@@ -88,17 +94,17 @@ case $title in
 esac
 
 # get hash of title/url
-{ printf "$salt"; echo "$title"; } | md5sum | cut -d' ' -f1 | read hash
+{ echo -n "$salt"; echo "$title"; } | md5sum | cut -d' ' -f1 | read hash
 
 # add a new random password with the current window
 [[ "$1" == "a" ]] && {
-    pwd=$(apg)
-    user=$(kdialog --inputbox "user")
-    { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
+    pwd=$(pwgen)
+    user=$(userprompt)
+    { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     mkdir -p ~/.pwd/$hash
     [[ -f ~/.pwd/$hash/$userhash ]] && mv ~/.pwd/$hash/$userhash ~/.pwd/$hash/$userhash.$(date +%s)
     echo -n "$user	$pwd" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
-    echo -n "$pass" | xclip -i
+    echo -n "$pwd" | xclip -i
     exit 0
 }
 
@@ -106,7 +112,7 @@ esac
 #echo "key=$title" >>~/.pwd/log
 [[ -d ~/.pwd/$hash ]] || exit 1 # no such host/label available
 
-pass="$(kdialog --password 'unlock pwd')"
+pass="$(pwprompt)"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
@@ -116,7 +122,7 @@ for key in ~/.pwd/$hash/* ; do
 done | dmenu | read user
 
 [[ -n "$user" ]] && {
-    { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
+    { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
