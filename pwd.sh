@@ -134,11 +134,11 @@ done | dmenu | read user
     line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     if [[ "$wintype" == "dactyl" ]]; then
-        xdotool getactivewindow key Esc g i ctrl+u
+        xdotool getactivewindow key Escape g i ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
     elif [[ "$wintype" == "luakit" ]]; then
-        xdotool getactivewindow key Esc g i Tab ctrl+u
+        xdotool getactivewindow key Escape g i Tab ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
     elif [[ "$wintype" == "firefox" ]]; then
