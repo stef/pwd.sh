@@ -44,7 +44,7 @@ if [[ -n "$1" && "$1" != "a" ]]; then
     data="$1"
     shift 1
 else
-    data="$HOME/.pwd/"
+    data="$HOME/.pwd"
 fi
 # load keyid & salt
 source $data/.cfg
