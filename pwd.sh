@@ -94,9 +94,10 @@ function xdoget {
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
     *Pentadactyl|*Vimperator) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
-    *Iceweasel|*Firefox|*Chromium) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
-    *Uzbl) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
-    *luakit) title="$(xdoget "title" shift+o ctrl+shift+Left ctrl+c)"; wintype=luakit; break;;
+    *Iceweasel|*Firefox) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
+    *Chromium) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=chromium; break;;
+    *Uzbl\ browser*) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
+    luakit*) title="$(xdoget "title" shift+o Home ctrl+Right Right ctrl+shift+End ctrl+c Escape)"; wintype=luakit; break;;
 esac
 
 # get hash of title/url
@@ -131,9 +132,21 @@ done | dmenu | read user
     { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
-    [[ "$wintype" == "dactyl" ]] && {
+    if [[ "$wintype" == "dactyl" ]]; then
         xdotool getactivewindow key Esc g i ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
-    }
+    elif [[ "$wintype" == "luakit" ]]; then
+        xdotool getactivewindow key Esc g i Tab ctrl+u
+        xdotool getactivewindow type "$user"
+        xdotool getactivewindow key Tab
+    elif [[ "$wintype" == "firefox" ]]; then
+        xdotool getactivewindow key Tab Tab Tab
+        xdotool getactivewindow type "$user"
+        xdotool getactiveWindow key Tab
+    elif [[ "$wintype" == "chromium" ]]; then
+        xdotool getactivewindow key Tab
+        xdotool getactivewindow type "$user"
+        xdotool getactivewindow key Tab
+    fi
 }
