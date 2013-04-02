@@ -36,7 +36,11 @@
 # how you like your passwords?
 alias pwgen="apg -q -a1 -n 1 -m 14 -M NCL"
 
-alias pwprompt=ssh-askpass
+if [[ -x "/usr/lib/ssh/ssh-askpass" ]]; then
+    alias pwprompt=/usr/lib/ssh/ssh-askpass
+else
+    alias pwprompt=ssh-askpass
+fi
 
 function userprompt {
     echo -n "$USERNAME" | dmenu -p 'user>'
@@ -89,7 +93,7 @@ function xdoget {
 # TODO maybe also detect chromium, uzbl, luakit, etc?
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
-    *Pentadactyl) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
+    *Pentadactyl|*Vimperator) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
     *Iceweasel|*Firefox) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
 esac
 
@@ -126,7 +130,7 @@ done | dmenu | read user
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
-        xdotool getactivewindow key g i ctrl+u
+        xdotool getactivewindow key Esc g i ctrl+u
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
     }
