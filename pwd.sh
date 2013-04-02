@@ -36,6 +36,7 @@
 # how you like your passwords?
 alias pwgen="apg -q -a1 -n 1 -m 14 -M NCL"
 
+# ssh-askpass path fix for ARCH linux
 if [[ -x "/usr/lib/ssh/ssh-askpass" ]]; then
     alias pwprompt=/usr/lib/ssh/ssh-askpass
 else
@@ -84,7 +85,7 @@ function xdoget {
 [[ "$#" -eq 2 ]] && {
     { echo -n "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { echo -n "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(pwprompt | gpg --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    line=$(pwprompt | gpg --batch --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
@@ -122,7 +123,7 @@ esac
 pass="$(pwprompt)"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
-    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
+    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
     user="$(echo "${line}" | cut -d"	" -f1)"
     echo "$user"
     sleep 0.2
@@ -130,7 +131,7 @@ done | dmenu | read user
 
 [[ -n "$user" ]] && {
     { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
+    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     if [[ "$wintype" == "dactyl" ]]; then
         xdotool getactivewindow key Esc g i ctrl+u
