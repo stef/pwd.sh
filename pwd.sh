@@ -38,8 +38,15 @@ alias apg=apg -q -a1 -n 1 -m 14 -M NCL
 
 # end of config
 
+# use $1 to pass an alternative root-dir for the password store.
+# TODO proper parameter handling someday
+if [[ -n "$1" && "$1" != "a" ]]; then
+    data="$1"
+    shift 1
+else
+    data="$HOME/.pwd/"
+fi
 # load keyid & salt
-data=${1:-$HOME/.pwd/}
 source $data/.cfg
 [[ -z "$keyid" ]] && exit 1
 salt=${salt:-anti-rainbow-garbage} # this should be some random string
@@ -63,6 +70,7 @@ function xdoget {
     [[ $retries -ge 3 ]] && echo "$title"
 }
 
+# get host/user passwords
 [[ "$#" -eq 2 ]] && {
     { printf "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { printf "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
@@ -109,7 +117,6 @@ done | dmenu | read user
 
 [[ -n "$user" ]] && {
     { printf "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
-    echo "pass=$pass"
     line=$(echo "$pass" | gpg --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     [[ "$wintype" == "dactyl" ]] && {
