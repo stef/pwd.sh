@@ -94,7 +94,9 @@ function xdoget {
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
     *Pentadactyl|*Vimperator) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
-    *Iceweasel|*Firefox) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
+    *Iceweasel|*Firefox|*Chromium) title="$(xdoget "$title" Escape ctrl+l ctrl+a ctrl+c)"; wintype=firefox; break;;
+    *Uzbl) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
+    *luakit) title="$(xdoget "title" shift+o ctrl+shift+Left ctrl+c)"; wintype=luakit; break;;
 esac
 
 # get hash of title/url
