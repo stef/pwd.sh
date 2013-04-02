@@ -1,5 +1,5 @@
 #!/usr/bin/ksh
-# (c) 2013 s@ctrlc.hu, asciimoo@faszkorbacs.hu
+# (c) 2013 s@ctrlc.hu, asciimoo@faszkorbacs.hu, mail@crazypotato.tk
 #
 #  This is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
