@@ -8,7 +8,7 @@ passwords in storage.
 * Install
 depends:
 #+BEGIN_SRC sh
-apt-get install gnupg xdotool xclip suckless-tools kdialog apg
+apt-get install gnupg xdotool xclip suckless-tools kde-baseapps-bin apg
 #+END_SRC
 (suckless-tools provides dmenu)
 
