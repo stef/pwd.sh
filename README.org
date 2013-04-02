@@ -26,6 +26,8 @@ Bind the following to some window manager keys
 pwd.sh      # for getting a password
 pwd.sh a    # creating a new random password
 #+END_SRC
+pwd.sh accepts an optional *1st* parameter (preceding the 'a') for
+specifying an alternative root for the password storage.
 * Adding passwords
 A new password is automatically generated, the URL or window title
 used for indexing, and only the username is queried using kdialog.
@@ -33,7 +35,7 @@ used for indexing, and only the username is queried using kdialog.
 pwd.s uses X11 window titles or in case of firefox the current page
 url for indexing users and keys. The title or url is hashed with a
 salt for their final directory name. Users are stored in separate
-files, similarily using hashed names underneath their respective
+files, similarly using hashed names underneath their respective
 "site" directory.  Check out ~/.pwd after issuing a few "pwd.sh a"
 invocations.
 * Import from firefox
