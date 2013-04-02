@@ -43,7 +43,7 @@ else
 fi
 
 function userprompt {
-    echo -n "$USERNAME" | dmenu -p 'user>'
+    echo -e "$USER\n$(xclip -o)" | dmenu -p 'user>'
 }
 
 # end of config
