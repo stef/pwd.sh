@@ -43,24 +43,11 @@ else
     alias pwprompt=ssh-askpass
 fi
 
+# end of config
+
 function userprompt {
     echo -e "$USER\n$(xclip -o)" | dmenu -p 'user>'
 }
-
-# end of config
-
-# use $1 to pass an alternative root-dir for the password store.
-# TODO proper parameter handling someday
-if [[ -n "$1" && "$1" != "a" ]]; then
-    data="$1"
-    shift 1
-else
-    data="$HOME/.pwd"
-fi
-# load keyid & salt
-source $data/.cfg
-[[ -z "$keyid" ]] && exit 1
-salt=${salt:-anti-rainbow-garbage} # this should be some random string
 
 function xdoget {
     title="$1"
@@ -81,17 +68,47 @@ function xdoget {
     [[ $retries -ge 3 ]] && echo "$title"
 }
 
-# get host/user passwords
+function noagent {
+    # gpg-agent is buggy with 4K keys on cryptosticks, so we disable it:
+    [[ -n "$GPG_AGENT_INFO" ]] && {
+        export OLD_GPGAGENT="$GPG_AGENT_INFO"
+        unset GPG_AGENT_INFO
+    }
+}
+
+function reagent {
+    # restore gpg-agent if it was running
+    [[ -n "$OLD_GPGAGENT" ]] && {
+        export GPG_AGENT_INFO="$OLD_GPGAGENT"
+        unset OLD_GPGAGENT
+    }
+}
+
+# use $1 to pass an alternative root-dir for the password store.
+# TODO proper parameter handling someday
+if [[ -n "$1" && "$1" != "a" ]]; then
+    data="$1"
+    shift 1
+else
+    data="$HOME/.pwd"
+fi
+# load keyid & salt
+source $data/.cfg
+[[ -z "$keyid" ]] && exit 1
+salt=${salt:-anti-rainbow-garbage} # this should be some random string
+
+# if $1 = host and $2 = user get host/user passwords
 [[ "$#" -eq 2 ]] && {
     { echo -n "$salt"; echo "$1"; } | md5sum | cut -d' ' -f1 | read hosthash
     { echo -n "$salt"; echo "$2"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(pwprompt | gpg --batch --no-use-agent --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    noagent
+    line=$(pwprompt | gpg --batch --no-tty --quiet -d --passphrase-fd 0 $gpghome -d ~/.pwd/$hosthash/$userhash )
+    reagent
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
     exit 0
 }
 
-# find out title/url
-# TODO maybe also detect chromium, uzbl, luakit, etc?
+# find out title/url of active window
 title=$(xdotool getactivewindow getwindowname | sed -e 's/^ *//g;s/ *$//g')
 case $title in
     *Pentadactyl|*Vimperator) title="$(xdoget "$title" Escape y)"; wintype=dactyl; break;;
@@ -100,10 +117,10 @@ case $title in
     *Uzbl\ browser*) title="$(xdoget "title" Escape y u)"; wintype=uzbl; break;;
     luakit*) title="$(xdoget "title" shift+o Home ctrl+Right Right ctrl+shift+End ctrl+c Escape)"; wintype=luakit; break;;
 esac
-
 # get hash of title/url
 { echo -n "$salt"; echo "$title"; } | md5sum | cut -d' ' -f1 | read hash
 
+# if invoked with $1 = a
 # add a new random password with the current window
 [[ "$1" == "a" ]] && {
     pwd=$(pwgen)
@@ -111,7 +128,7 @@ esac
     { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
     mkdir -p ~/.pwd/$hash
     [[ -f ~/.pwd/$hash/$userhash ]] && mv ~/.pwd/$hash/$userhash ~/.pwd/$hash/$userhash.$(date +%s)
-    echo -n "$user	$pwd" | gpg --no-use-agent --yes --batch --no-tty --quiet $gpghome --encrypt --encrypt-to $keyid -r $keyid >~/.pwd/$hash/$userhash
+    echo -n "$user	$pwd" | gpg --yes --batch --no-tty --quiet $gpghome --encrypt -r $keyid >~/.pwd/$hash/$userhash
     echo -n "$pwd" | xclip -i
     exit 0
 }
@@ -120,10 +137,11 @@ esac
 #echo "key=$title" >>~/.pwd/log
 [[ -d ~/.pwd/$hash ]] || exit 1 # no such host/label available
 
+noagent
 pass="$(pwprompt)"
 for key in ~/.pwd/$hash/* ; do
     # todo adapt
-    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
+    line=$(echo "$pass" | gpg --batch --no-tty --quiet --passphrase-fd 0 $gpghome -d $key )
     user="$(echo "${line}" | cut -d"	" -f1)"
     echo "$user"
     sleep 0.2
@@ -131,23 +149,17 @@ done | dmenu | read user
 
 [[ -n "$user" ]] && {
     { echo -n "$salt"; echo "$user"; } | md5sum | cut -d' ' -f1 | read userhash
-    line=$(echo "$pass" | gpg --batch --no-use-agent --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
+    line=$(echo "$pass" | gpg --batch --no-tty --quiet --passphrase-fd 0 $gpghome -d ~/.pwd/$hash/$userhash )
     echo -n "${line}" | cut -d"	" -f2 | xclip -i
-    if [[ "$wintype" == "dactyl" ]]; then
-        xdotool getactivewindow key Escape g i ctrl+u
+    [[ -n "$wintype" ]] && {
+        case $wintype in
+            dactyl) xdotool getactivewindow key Escape g i ctrl+u ;;
+            luakit) xdotool getactivewindow key Escape g i Tab ctrl+u ;;
+            firefox) xdotool getactivewindow key Tab Tab Tab ;;
+            chromium) xdotool getactivewindow key Tab ;;
+        esac
         xdotool getactivewindow type "$user"
         xdotool getactivewindow key Tab
-    elif [[ "$wintype" == "luakit" ]]; then
-        xdotool getactivewindow key Escape g i Tab ctrl+u
-        xdotool getactivewindow type "$user"
-        xdotool getactivewindow key Tab
-    elif [[ "$wintype" == "firefox" ]]; then
-        xdotool getactivewindow key Tab Tab Tab
-        xdotool getactivewindow type "$user"
-        xdotool getactiveWindow key Tab
-    elif [[ "$wintype" == "chromium" ]]; then
-        xdotool getactivewindow key Tab
-        xdotool getactivewindow type "$user"
-        xdotool getactivewindow key Tab
-    fi
+    }
 }
+reagent
